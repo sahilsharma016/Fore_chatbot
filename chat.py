@@ -14,7 +14,8 @@ warnings.filterwarnings('ignore')
 logging.getLogger().setLevel(logging.ERROR)
 
 # --- Set API Key ---
-os.environ["GOOGLE_API_KEY"] = "AIzaSyAR1VAZKgqaMPq6MPYR4qR43_pLb4RIgeY"
+#os.environ["GOOGLE_API_KEY"] = ""
+os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
 
 # --- Model Config ---
 llm_model_name = "gemini-2.5-flash"
@@ -67,7 +68,7 @@ st.set_page_config(page_title="Fore Chatbot", layout="centered")
 
 st.title("📄 Testing - version 0.4")
 #user_input = st.text_input("Ask a question:who is director of fore")
-user_input = st.text_input("", placeholder="Ask a question: who is director of fore")
+user_input = st.text_input("", placeholder="who is director of fore")
 
 if user_input:
     with st.spinner("Searching..."):
