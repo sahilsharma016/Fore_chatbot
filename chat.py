@@ -1,118 +1,72 @@
-import os
 import streamlit as st
-import warnings
+import os
 import logging
-import google.generativeai as genai
+import warnings
 
 from langchain_community.vectorstores import FAISS
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain.prompts import ChatPromptTemplate
 
-# -------------------- CONFIG --------------------
-warnings.filterwarnings("ignore")
+# --- Suppress warnings and logs ---
+warnings.filterwarnings('ignore')
 logging.getLogger().setLevel(logging.ERROR)
 
-# Get API key from environment or Streamlit secrets
-api_key = os.getenv("GOOGLE_API_KEY") or st.secrets["GOOGLE_API_KEY"]
-genai.configure(api_key=api_key)
+# --- Set API Key ---
+os.environ["GOOGLE_API_KEY"] = "AIzaSyAR1VAZKgqaMPq6MPYR4qR43_pLb4RIgeY"
 
-LLM_MODEL = "gemini-2.5-flash"
-EMBED_MODEL = "embedding-001"
-INDEX_DIR = "faiss_index"  # path to index.faiss and index.pkl
+# --- Model Config ---
+llm_model_name = "gemini-2.5-flash"
+embedding_model_name = "embedding-001"
 
-# -------------------- Embedding Logic --------------------
+# --- Load Models ---
+llm = ChatGoogleGenerativeAI(model=llm_model_name, temperature=0.0)
+embedding_function = GoogleGenerativeAIEmbeddings(model=embedding_model_name)
 
-def embed_documents_direct(texts):
-    """Embed a list of document texts for indexing or retrieval."""
-    response = genai.embed_content(
-        model=EMBED_MODEL,
-        content=texts,
-        task_type="retrieval_document"
-    )
-    return response['embedding']
+# --- Load Vector Store ---
+@st.cache_resource
+def load_vector_store():
+    return FAISS.load_local("faiss_index", embedding_function, allow_dangerous_deserialization=True)
 
-def embed_query_direct(text):
-    """Embed a single query text."""
-    response = genai.embed_content(
-        model=EMBED_MODEL,
-        content=text,
-        task_type="retrieval_query"
-    )
-    return response['embedding']
+vector_store = load_vector_store()
+retriever = vector_store.as_retriever()
 
-class CustomGeminiEmbeddings:
-    def embed_documents(self, texts):
-        return [embed_documents_direct(text) for text in texts]
+# --- Prompt Template ---
+prompt_template = """
+Answer the question using ONLY the provided context.
+If the answer is not in the context, respond with:
+"I’m sorry, I don’t have that information right now."
 
-    def embed_query(self, text):
-        return embed_query_direct(text)
+Context:
+{context}
 
-# -------------------- RAG Chain Loader --------------------
+Question: {question}
+"""
+prompt = ChatPromptTemplate.from_template(prompt_template)
 
-@st.cache_resource(show_spinner="🔄 Loading AI & Vector DB…")
-def load_rag_chain():
-    embedding_function = CustomGeminiEmbeddings()
-    vector_store = FAISS.load_local(
-        INDEX_DIR,
-        embedding_function,
-        allow_dangerous_deserialization=True
-    )
-    retriever = vector_store.as_retriever()
+# --- RAG Chain ---
+rag_chain = (
+    {"context": retriever, "question": RunnablePassthrough()}
+    | prompt
+    | llm
+    | StrOutputParser()
+)
 
-    prompt_template = """
-    Answer the question using ONLY the provided context.
-    If the answer is not in the context, respond with:
-    "I’m sorry, I don’t have that information right now."
+# --- Chat Function ---
+def chat_with_pdf(question: str) -> str:
+    response = rag_chain.invoke(question)
+    return response.replace('\n', ' ')
 
-    Context:
-    {context}
+# --- Streamlit UI ---
+st.set_page_config(page_title="Fore Chatbot", layout="centered")
 
-    Question: {question}
-    """
-    prompt = ChatPromptTemplate.from_template(prompt_template)
-
-    from langchain_google_genai import ChatGoogleGenerativeAI
-    llm = ChatGoogleGenerativeAI(
-        model=LLM_MODEL,
-        temperature=0.0,
-        google_api_key=api_key
-    )
-
-    return (
-        {"context": retriever, "question": RunnablePassthrough()}
-        | prompt
-        | llm
-        | StrOutputParser()
-    )
-
-rag_chain = load_rag_chain()
-
-# -------------------- Streamlit UI --------------------
-
-st.set_page_config(page_title="💬 Fore Solutions Chatbot", page_icon="🤖")
-st.title("💬 Chat with Fore Solutions PDF")
-st.markdown("Ask questions based **only on the uploaded PDF content**.")
-
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
-
-user_input = st.chat_input("Type your question here...")
+st.title("📄 Testing - version 0.4")
+user_input = st.text_input("Ask a question:who is director of fore")
 
 if user_input:
-    with st.spinner("Thinking..."):
-        try:
-            answer = rag_chain.invoke(user_input).replace("\n", " ")
-        except Exception as e:
-            st.error("An error occurred while generating the response.")
-            st.exception(e)
-            answer = "⚠️ Failed to get an answer due to an internal error."
-    st.session_state.chat_history.append((user_input, answer))
+    with st.spinner("Searching..."):
+        answer = chat_with_pdf(user_input)
+    st.success(answer)
 
-# Display history
-for q, a in st.session_state.chat_history:
-    with st.chat_message("user"):
-        st.markdown(q)
-    with st.chat_message("assistant"):
-        st.markdown(a)
 
