@@ -6,7 +6,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
 from langchain_community.vectorstores import FAISS
 
-api_key = "AIzaSyDPIjub16iX7uwgA7Nl_AjW1q0_CAqdDcs"
+api_key = ""
 genai.configure(api_key=api_key)
 
 EMBEDDING_MODEL_NAME = "embedding-001"
