@@ -22,7 +22,11 @@ embedding_model_name = "embedding-001"
 
 # --- Load Models ---
 llm = ChatGoogleGenerativeAI(model=llm_model_name, temperature=0.0)
-embedding_function = GoogleGenerativeAIEmbeddings(model=embedding_model_name)
+
+#embedding_function = GoogleGenerativeAIEmbeddings(model=embedding_model_name)
+
+embedding_function = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+
 
 # --- Load Vector Store ---
 @st.cache_resource
