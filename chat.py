@@ -66,7 +66,8 @@ def chat_with_pdf(question: str) -> str:
 st.set_page_config(page_title="Fore Chatbot", layout="centered")
 
 st.title("📄 Testing - version 0.4")
-user_input = st.text_input("Ask a question:who is director of fore")
+#user_input = st.text_input("Ask a question:who is director of fore")
+user_input = st.text_input("", placeholder="Ask a question: who is director of fore")
 
 if user_input:
     with st.spinner("Searching..."):
