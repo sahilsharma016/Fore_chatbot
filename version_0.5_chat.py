@@ -65,8 +65,13 @@ rag_chain = (
 
 
 
+
+
 def log_to_gsheet(question, response):
-    scope = ["https://www.googleapis.com/auth/spreadsheets"]
+    scope = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"]
+
     
     creds = Credentials.from_service_account_info(
         st.secrets["gcp_service_account"], scopes=scope
