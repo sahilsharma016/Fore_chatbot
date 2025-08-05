@@ -5,3 +5,5 @@ langchain-google-genai
 google-generativeai
 faiss-cpu
 pymupdf
+
+gspread oauth2client
