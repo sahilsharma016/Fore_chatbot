@@ -78,7 +78,7 @@ def log_to_gsheet(question, response):
     )
 
     client = gspread.authorize(creds)
-    sheet = client.open("Fore Chatbot Logs").sheet1
+    sheet = client.open("model sheet").sheet1
     sheet.append_row([question, response])
 
 
