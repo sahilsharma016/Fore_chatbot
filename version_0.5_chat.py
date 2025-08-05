@@ -2,6 +2,9 @@ import streamlit as st
 import os
 import logging
 import warnings
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+from datetime import datetime
 
 from langchain_community.vectorstores import FAISS
 from langchain_core.runnables import RunnablePassthrough
@@ -58,6 +61,18 @@ rag_chain = (
     | StrOutputParser()
 )
 
+
+
+def log_to_gsheet(question, response):
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds = ServiceAccountCredentials.from_json_keyfile_name("forechatbot-key.json", scope)
+    client = gspread.authorize(creds)
+
+    sheet = client.open("Fore Chatbot Logs").sheet1  # exact sheet name
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    sheet.append_row([timestamp, question, response])
+
+
 # --- Chat Function ---
 def chat_with_pdf(question: str) -> str:
     response = rag_chain.invoke(question)
@@ -71,13 +86,8 @@ st.title("📄 Testing - version 0.5")
 user_input = st.text_input("", placeholder="who is director of fore")
 
 if user_input:
-    with st.spinner("Searching..."):
-        answer = chat_with_pdf(user_input)
+    response = chat_with_pdf(user_input)
 
-    # Log Q&A to file
-    with open("chat_log.txt", "a", encoding="utf-8") as log_file:
-        log_file.write(f"Q: {user_input}\n")
-        log_file.write(f"A: {answer}\n")
-        log_file.write("-" * 40 + "\n")
+    st.write(response)
+    log_to_gsheet(user_input, response)
 
-    st.success(answer)
