@@ -63,14 +63,17 @@ rag_chain = (
 
 
 
-def log_to_gsheet(question, response):
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = ServiceAccountCredentials.from_json_keyfile_name("forechatbot-key.json", scope)
-    client = gspread.authorize(creds)
 
-    sheet = client.open("Fore Chatbot Logs").sheet1  # exact sheet name
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    sheet.append_row([timestamp, question, response])
+def log_to_gsheet(question, response):
+    scope = ["https://www.googleapis.com/auth/spreadsheets"]
+    
+    creds = Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"], scopes=scope
+    )
+
+    client = gspread.authorize(creds)
+    sheet = client.open("Fore Chatbot Logs").sheet1
+    sheet.append_row([question, response])
 
 
 # --- Chat Function ---
